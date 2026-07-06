@@ -58,6 +58,7 @@ import app.openscanner.android.ui.theme.TextSecondaryAlpha
 @Composable
 fun ScannerScreen(
     onBack: () -> Unit,
+    onCaptured: () -> Unit,
     viewModel: ScannerViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -111,7 +112,7 @@ fun ScannerScreen(
                         .weight(1f)
                 )
             }
-            Controls(viewModel = viewModel, enabled = hasPermission)
+            Controls(viewModel = viewModel, enabled = hasPermission, onCaptured = onCaptured)
         }
     }
 }
@@ -203,8 +204,13 @@ private fun StatusHint(found: Boolean, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Controls(viewModel: ScannerViewModel, enabled: Boolean) {
+private fun Controls(
+    viewModel: ScannerViewModel,
+    enabled: Boolean,
+    onCaptured: () -> Unit
+) {
     val torchOn by viewModel.torchOn.collectAsStateWithLifecycle()
+    val isCapturing by viewModel.isCapturing.collectAsStateWithLifecycle()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -220,10 +226,15 @@ private fun Controls(viewModel: ScannerViewModel, enabled: Boolean) {
             onClick = {}
         )
         OSButton(
-            label = "Capture",
+            label = if (isCapturing) "Capturing…" else "Capture",
             icon = Icons.Rounded.PhotoCamera,
-            enabled = enabled,
-            onClick = { /* capture lands in the next milestone */ }
+            enabled = enabled && !isCapturing,
+            onClick = {
+                viewModel.capture(
+                    onCaptured = onCaptured,
+                    onError = { /* stay on screen; user can retry */ }
+                )
+            }
         )
         OSIconButton(
             icon = if (torchOn) Icons.Rounded.FlashOn else Icons.Rounded.FlashOff,
