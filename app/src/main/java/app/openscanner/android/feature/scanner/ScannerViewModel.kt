@@ -19,16 +19,16 @@ import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.lifecycle.awaitInstance
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.openscanner.android.OpenScannerApplication
 import app.openscanner.android.core.ScanSession
 import app.openscanner.android.core.vision.Quad
-import app.openscanner.android.core.vision.QuadDetector
 import app.openscanner.android.core.vision.QuadRefiner
 import app.openscanner.android.core.vision.QuadSmoother
 import app.openscanner.android.core.vision.rotated
-import app.openscanner.android.core.vision.toGrayMat
 import java.util.concurrent.Executors
 import kotlin.math.hypot
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +41,7 @@ import org.opencv.android.Utils
 import org.opencv.core.Mat
 import org.opencv.imgproc.Imgproc
 
-class ScannerViewModel : ViewModel() {
+class ScannerViewModel(application: Application) : AndroidViewModel(application) {
 
     /** A detection in upright analysis-frame pixel coordinates. */
     data class Detection(val quad: Quad?, val frameWidth: Int, val frameHeight: Int)
@@ -59,7 +59,8 @@ class ScannerViewModel : ViewModel() {
     val isCapturing = _isCapturing.asStateFlow()
 
     private var camera: Camera? = null
-    private val detector = QuadDetector()
+    private val detector =
+        (application as OpenScannerApplication).container.quadDetector
     private val smoother = QuadSmoother()
     private val analysisExecutor = Executors.newSingleThreadExecutor()
     private val captureExecutor = Executors.newSingleThreadExecutor()
@@ -102,18 +103,26 @@ class ScannerViewModel : ViewModel() {
         .build()
 
     private fun analyze(frame: ImageProxy) {
+        val bitmap: Bitmap
+        val rotation: Int
         frame.use {
-            val gray = it.toGrayMat()
-            val upright = gray.rotated(it.imageInfo.rotationDegrees)
-            if (upright !== gray) gray.release()
-
-            val detected = detector.detect(upright, previous = smoother.current())
-            val diagonal = hypot(upright.width().toFloat(), upright.height().toFloat())
-            val smoothed = smoother.update(detected, diagonal)
-
-            _detection.value = Detection(smoothed, upright.width(), upright.height())
-            upright.release()
+            rotation = it.imageInfo.rotationDegrees
+            bitmap = it.toBitmap() // YUV -> ARGB; the ML model wants color
         }
+        val rgbaRaw = Mat()
+        Utils.bitmapToMat(bitmap, rgbaRaw)
+        val rgba = rgbaRaw.rotated(rotation)
+        if (rgba !== rgbaRaw) rgbaRaw.release()
+        val gray = Mat()
+        Imgproc.cvtColor(rgba, gray, Imgproc.COLOR_RGBA2GRAY)
+
+        val detected = detector.detect(rgba, gray, previous = smoother.current())
+        val diagonal = hypot(gray.width().toFloat(), gray.height().toFloat())
+        val smoothed = smoother.update(detected, diagonal)
+
+        _detection.value = Detection(smoothed, gray.width(), gray.height())
+        rgba.release()
+        gray.release()
     }
 
     /** Binds the camera for as long as the calling coroutine is active. */
@@ -260,8 +269,8 @@ class ScannerViewModel : ViewModel() {
         Utils.bitmapToMat(small, rgba)
         val gray = Mat()
         Imgproc.cvtColor(rgba, gray, Imgproc.COLOR_RGBA2GRAY)
+        val quad = detector.detect(rgba, gray)
         rgba.release()
-        val quad = detector.detect(gray)
         gray.release()
         if (small !== bitmap) small.recycle()
 

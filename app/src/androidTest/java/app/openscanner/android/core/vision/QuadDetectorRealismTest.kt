@@ -34,12 +34,27 @@ class QuadDetectorRealismTest {
     }
 
     @Test
-    fun detectsDocumentsInRealisticConditions() {
+    fun classicalDetectorHandlesRealisticConditions() {
+        val classical = QuadDetector()
+        runSuite(minHits = 31) { rgba, gray -> classical.detect(gray).also { rgba.release() } }
+    }
+
+    @Test
+    fun hybridDetectorHandlesRealisticConditions() {
+        val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val ml = MlQuadDetector.create(targetContext)
+        assertTrue("ML model failed to load from app assets", ml != null)
+        val hybrid = HybridQuadDetector(ml)
+        runSuite(minHits = 33) { rgba, gray ->
+            hybrid.detect(rgba, gray).also { rgba.release() }
+        }
+    }
+
+    private fun runSuite(minHits: Int, detect: (Mat, Mat) -> Quad?) {
         val assets = InstrumentationRegistry.getInstrumentation().context.assets
         val truth = JSONArray(
             assets.open("detectcases/truth.json").bufferedReader().readText()
         )
-        val detector = QuadDetector()
 
         var hits = 0
         var falseQuads = 0
@@ -55,10 +70,9 @@ class QuadDetectorRealismTest {
             Utils.bitmapToMat(bitmap, rgba)
             val gray = Mat()
             Imgproc.cvtColor(rgba, gray, Imgproc.COLOR_RGBA2GRAY)
-            rgba.release()
 
             val diagonal = hypot(gray.width().toFloat(), gray.height().toFloat())
-            val detected = detector.detect(gray)
+            val detected = detect(rgba, gray)
             gray.release()
 
             if (detected == null) {
@@ -72,8 +86,8 @@ class QuadDetectorRealismTest {
         }
 
         assertTrue(
-            "Only $hits/${truth.length()} detections (need >= 31), $falseQuads false quads:\n$failures",
-            hits >= 31
+            "Only $hits/${truth.length()} detections (need >= $minHits), $falseQuads false quads:\n$failures",
+            hits >= minHits
         )
         assertTrue("False quads are worse than misses: $falseQuads\n$failures", falseQuads <= 1)
     }

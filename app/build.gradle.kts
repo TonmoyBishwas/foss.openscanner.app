@@ -15,10 +15,16 @@ android {
         applicationId = "app.openscanner.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.0.2"
+        versionCode = 7
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Local dev/test convenience: -PtargetAbi=x86_64 builds a single-ABI
+        // APK (the all-ABI debug APK is too large for emulator storage).
+        if (project.hasProperty("targetAbi")) {
+            ndk { abiFilters.add(project.property("targetAbi") as String) }
+        }
     }
 
     signingConfigs {
@@ -91,6 +97,7 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.compose)
     implementation(libs.opencv)
+    implementation(libs.onnxruntime)
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

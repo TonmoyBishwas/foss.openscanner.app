@@ -31,6 +31,7 @@ camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.r
 camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 camera-compose = { group = "androidx.camera", name = "camera-compose", version.ref = "camerax" }
 opencv = { group = "org.opencv", name = "opencv", version.ref = "opencv" }
+onnxruntime = { group = "com.microsoft.onnxruntime", name = "onnxruntime-android", version = "1.27.0" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }

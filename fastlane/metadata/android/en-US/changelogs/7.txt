@@ -1,0 +1,7 @@
+Neural page detection.
+
+- On-device AI corner detection (DocAligner model) finds pages the way
+  commercial scanner apps do — works on cluttered, low-contrast scenes
+- Classical detection cross-checks and sharpens the corners, and takes
+  over automatically when the model is unsure
+- Still 100% offline: the model runs on your CPU, nothing leaves the phone

@@ -32,8 +32,9 @@ Grab the latest APK from [GitHub Releases](https://github.com/TonmoyBishwas/foss
 
 - Kotlin + Jetpack Compose (Material 3)
 - CameraX for the camera pipeline
-- [OpenCV](https://opencv.org/) (Apache-2.0) for edge detection, perspective correction, and filters
-- No Google Play Services dependency — F-Droid friendly
+- Hybrid page detection: the [DocAligner](https://github.com/DocsaidLab/DocAligner) neural corner model (Apache-2.0) via [ONNX Runtime](https://onnxruntime.ai/) (MIT), cross-checked and sub-pixel-refined by a classical [OpenCV](https://opencv.org/) pipeline
+- OpenCV (Apache-2.0) for perspective correction and the enhancement filters
+- Everything runs on-device on the CPU — no Google Play Services, no network; F-Droid friendly (see [NOTICE.md](NOTICE.md))
 
 ## Building
 
