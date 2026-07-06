@@ -1,0 +1,4 @@
+- Live document edge detection in the viewfinder
+- Automatic crop and perspective correction on capture
+- Manual corner adjustment with magnifier loupe
+- Filters: Magic B&W, Color, Grayscale, Original
