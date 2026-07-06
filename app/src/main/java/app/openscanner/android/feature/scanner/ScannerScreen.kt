@@ -218,12 +218,31 @@ private fun Controls(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val context = LocalContext.current
+        val galleryLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.PickVisualMedia()
+        ) { uri ->
+            if (uri != null) {
+                viewModel.importImage(
+                    context = context,
+                    uri = uri,
+                    onReady = onCaptured,
+                    onError = { android.util.Log.e("OpenScanner", "Gallery import failed", it) }
+                )
+            }
+        }
         OSIconButton(
             icon = Icons.Rounded.Image,
             contentDescription = "Import from gallery",
             variant = OSIconButtonVariant.Tonal,
-            enabled = false, // arrives with gallery import
-            onClick = {}
+            enabled = true,
+            onClick = {
+                galleryLauncher.launch(
+                    androidx.activity.result.PickVisualMediaRequest(
+                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                    )
+                )
+            }
         )
         OSButton(
             label = if (isCapturing) "Capturing…" else "Capture",

@@ -2,7 +2,9 @@ package app.openscanner.android.feature.scanner
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.net.Uri
 import android.util.Size
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -28,10 +30,15 @@ import app.openscanner.android.core.vision.rotated
 import app.openscanner.android.core.vision.toGrayMat
 import java.util.concurrent.Executors
 import kotlin.math.hypot
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.opencv.android.Utils
+import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
 
 class ScannerViewModel : ViewModel() {
 
@@ -173,6 +180,74 @@ class ScannerViewModel : ViewModel() {
                     }
                 }
             }
+        )
+    }
+
+    /**
+     * Imports a gallery image: decodes it (downsampled to a sane size), runs
+     * the same quad detection used live, stores everything in [ScanSession].
+     */
+    fun importImage(context: Context, uri: Uri, onReady: () -> Unit, onError: (Throwable) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val bitmap = withContext(Dispatchers.IO) { decodeScaled(context, uri, maxDimension = 4096) }
+                    ?: error("Could not decode image")
+                val quad = withContext(Dispatchers.Default) { detectInBitmap(bitmap) }
+                ScanSession.captured = bitmap
+                ScanSession.detectedQuad = quad
+                onReady()
+            } catch (e: Exception) {
+                onError(e)
+            }
+        }
+    }
+
+    private fun decodeScaled(context: Context, uri: Uri, maxDimension: Int): Bitmap? {
+        val resolver = context.contentResolver
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            val source = android.graphics.ImageDecoder.createSource(resolver, uri)
+            return android.graphics.ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                // Software bitmap in ARGB_8888 so OpenCV can read the pixels.
+                decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
+                val largest = maxOf(info.size.width, info.size.height)
+                if (largest > maxDimension) {
+                    val scale = maxDimension.toFloat() / largest
+                    decoder.setTargetSize(
+                        (info.size.width * scale).toInt().coerceAtLeast(1),
+                        (info.size.height * scale).toInt().coerceAtLeast(1)
+                    )
+                }
+            }
+        }
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxDimension) sample *= 2
+        val options = BitmapFactory.Options().apply { inSampleSize = sample }
+        return resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+    }
+
+    private fun detectInBitmap(bitmap: Bitmap): Quad? {
+        // Detect on a ~640px copy for speed, then scale the quad up.
+        val scale = (640f / maxOf(bitmap.width, bitmap.height)).coerceAtMost(1f)
+        val smallWidth = (bitmap.width * scale).toInt().coerceAtLeast(1)
+        val smallHeight = (bitmap.height * scale).toInt().coerceAtLeast(1)
+        val small = if (scale < 1f) {
+            Bitmap.createScaledBitmap(bitmap, smallWidth, smallHeight, true)
+        } else bitmap
+
+        val rgba = Mat()
+        Utils.bitmapToMat(small, rgba)
+        val gray = Mat()
+        Imgproc.cvtColor(rgba, gray, Imgproc.COLOR_RGBA2GRAY)
+        rgba.release()
+        val quad = detector.detect(gray)
+        gray.release()
+        if (small !== bitmap) small.recycle()
+
+        return quad?.scaled(
+            bitmap.width.toFloat() / smallWidth,
+            bitmap.height.toFloat() / smallHeight
         )
     }
 

@@ -1,0 +1,4 @@
+- Save scans to a searchable document library
+- Multi-page documents: add, reorder-safe numbering, delete pages
+- Export and share documents as PDF; save PDFs to Downloads
+- Import photos from the gallery with automatic edge detection

@@ -8,6 +8,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,7 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DriveFileRenameOutline
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -39,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.openscanner.android.data.db.PageEntity
 import app.openscanner.android.ui.components.OSButton
+import app.openscanner.android.ui.components.OSButtonVariant
 import app.openscanner.android.ui.components.OSConfirmDialog
 import app.openscanner.android.ui.components.OSIconButton
 import app.openscanner.android.ui.components.OSRenameDialog
@@ -54,6 +58,7 @@ fun DocumentDetailScreen(
 ) {
     val document by viewModel.document.collectAsStateWithLifecycle()
     val pages by viewModel.pages.collectAsStateWithLifecycle()
+    val isExporting by viewModel.isExporting.collectAsStateWithLifecycle()
 
     var showRename by remember { mutableStateOf(false) }
     var showDeleteDoc by remember { mutableStateOf(false) }
@@ -77,6 +82,14 @@ fun DocumentDetailScreen(
                         contentDescription = "Rename scan",
                         onClick = { showRename = true }
                     )
+                    if (viewModel.canSaveToDownloads) {
+                        OSIconButton(
+                            icon = Icons.Rounded.Download,
+                            contentDescription = "Save PDF to Downloads",
+                            enabled = !isExporting && pages.isNotEmpty(),
+                            onClick = { viewModel.savePdfToDownloads() }
+                        )
+                    }
                     OSIconButton(
                         icon = Icons.Rounded.DeleteOutline,
                         contentDescription = "Delete scan",
@@ -107,14 +120,25 @@ fun DocumentDetailScreen(
                 }
             }
 
-            OSButton(
-                label = "Add page",
-                icon = Icons.Rounded.Add,
-                onClick = { onAddPage(viewModel.documentId) },
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(16.dp)
-            )
+            ) {
+                OSButton(
+                    label = "Add page",
+                    icon = Icons.Rounded.Add,
+                    variant = OSButtonVariant.Tonal,
+                    onClick = { onAddPage(viewModel.documentId) }
+                )
+                OSButton(
+                    label = if (isExporting) "Exporting…" else "Share PDF",
+                    icon = Icons.Rounded.Share,
+                    enabled = !isExporting && pages.isNotEmpty(),
+                    onClick = { viewModel.sharePdf() }
+                )
+            }
         }
     }
 
