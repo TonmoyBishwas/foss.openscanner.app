@@ -1,0 +1,1 @@
+Scan documents with live edge detection and crisp black-on-white filters.

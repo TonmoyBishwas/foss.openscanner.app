@@ -1,0 +1,19 @@
+OpenScanner is a free and open-source document scanner.
+
+Point your camera at a page: OpenScanner finds the four corners in real time, crops the page flat when you capture, and applies a filter that makes text crisp black on a clean white background — like a real scanner, not a photo.
+
+Features:
+
+- Live edge detection with a highlighted outline in the viewfinder
+- Automatic crop and perspective correction on capture
+- Magic filter: vivid black text on clean white, with shadows removed
+- More filters: color enhance, grayscale, original
+- Multi-page documents, exported and shared as PDF
+- Import existing photos from your gallery
+- Manual corner adjustment with a magnifier
+
+Private by design:
+
+- 100% offline — the app has no network access at all
+- No ads, no watermarks, no account, no tracking
+- Free software under the GPL-3.0 license
