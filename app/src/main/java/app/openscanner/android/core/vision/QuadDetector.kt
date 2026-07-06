@@ -39,10 +39,16 @@ class QuadDetector(
 
     private class Candidate(val quad: Quad, val areaFraction: Float, val rectangularity: Float)
 
-    fun detect(gray: Mat): Quad? {
+    /**
+     * @param previous last known quad (smoothed), if any — candidates close to
+     *   it get a stickiness bonus so the winner doesn't swap between similar
+     *   candidates frame over frame (visible as overlay jumping)
+     */
+    fun detect(gray: Mat, previous: Quad? = null): Quad? {
         val width = gray.width()
         val height = gray.height()
         val frameArea = (width * height).toFloat()
+        val diagonal = kotlin.math.hypot(width.toFloat(), height.toFloat())
 
         // Median blur kills sensor noise that would otherwise inflate both the
         // edge maps and the gradient validation below.
@@ -101,16 +107,22 @@ class QuadDetector(
             val support = gradient.edgeSupport(candidate.quad)
             if (support.mean < 0.6f || support.weakestEdge < 0.35f) continue
             val borderPenalty = 1f - 0.5f * borderFraction(candidate.quad, width, height)
+            val stickiness = if (previous != null) {
+                0.15f * kotlin.math.exp(-(candidate.quad.distanceTo(previous) / diagonal) * 12f)
+            } else 0f
             val score = (0.45f * support.mean +
                 0.30f * candidate.rectangularity +
-                0.25f * min(candidate.areaFraction, 0.9f)) * borderPenalty
+                0.25f * min(candidate.areaFraction, 0.9f) +
+                stickiness) * borderPenalty
             if (score > bestScore) {
                 best = candidate.quad
                 bestScore = score
             }
         }
         gradient.release()
-        return best
+        // Sub-pixel snap onto the actual page border (also detaches from
+        // drop shadows the coarse contour may have included).
+        return best?.let { QuadRefiner.refine(gray, it) }
     }
 
     private fun collectQuads(binary: Mat, frameArea: Float, out: MutableList<Candidate>) {

@@ -25,6 +25,7 @@ import androidx.lifecycle.viewModelScope
 import app.openscanner.android.core.ScanSession
 import app.openscanner.android.core.vision.Quad
 import app.openscanner.android.core.vision.QuadDetector
+import app.openscanner.android.core.vision.QuadRefiner
 import app.openscanner.android.core.vision.QuadSmoother
 import app.openscanner.android.core.vision.rotated
 import app.openscanner.android.core.vision.toGrayMat
@@ -106,7 +107,7 @@ class ScannerViewModel : ViewModel() {
             val upright = gray.rotated(it.imageInfo.rotationDegrees)
             if (upright !== gray) gray.release()
 
-            val detected = detector.detect(upright)
+            val detected = detector.detect(upright, previous = smoother.current())
             val diagonal = hypot(upright.width().toFloat(), upright.height().toFloat())
             val smoothed = smoother.update(detected, diagonal)
 
@@ -160,12 +161,16 @@ class ScannerViewModel : ViewModel() {
                     } else bitmap
 
                     ScanSession.captured = upright
-                    ScanSession.detectedQuad = detectionAtShutter?.quad?.takeIf {
+                    val scaledQuad = detectionAtShutter?.quad?.takeIf {
                         detectionAtShutter.frameWidth > 0 && detectionAtShutter.frameHeight > 0
                     }?.scaled(
                         upright.width.toFloat() / detectionAtShutter.frameWidth,
                         upright.height.toFloat() / detectionAtShutter.frameHeight
                     )
+                    // Re-snap corners against the full-res capture: residual
+                    // error from the low-res analysis frame scales up ~6x
+                    // otherwise.
+                    ScanSession.detectedQuad = scaledQuad?.let { refineOnBitmap(upright, it) }
 
                     viewModelScope.launch {
                         _isCapturing.value = false
@@ -192,7 +197,9 @@ class ScannerViewModel : ViewModel() {
             try {
                 val bitmap = withContext(Dispatchers.IO) { decodeScaled(context, uri, maxDimension = 4096) }
                     ?: error("Could not decode image")
-                val quad = withContext(Dispatchers.Default) { detectInBitmap(bitmap) }
+                val quad = withContext(Dispatchers.Default) {
+                    detectInBitmap(bitmap)?.let { refineOnBitmap(bitmap, it) }
+                }
                 ScanSession.captured = bitmap
                 ScanSession.detectedQuad = quad
                 onReady()
@@ -225,6 +232,19 @@ class ScannerViewModel : ViewModel() {
         while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxDimension) sample *= 2
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
         return resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+    }
+
+    /** Sub-pixel corner snap against the full-resolution image. */
+    private fun refineOnBitmap(bitmap: Bitmap, quad: Quad): Quad {
+        val rgba = Mat()
+        Utils.bitmapToMat(bitmap, rgba)
+        val gray = Mat()
+        Imgproc.cvtColor(rgba, gray, Imgproc.COLOR_RGBA2GRAY)
+        rgba.release()
+        val search = (12f * bitmap.width / 640f).coerceIn(12f, 40f)
+        val refined = QuadRefiner.refine(gray, quad, searchRadius = search, samplesPerEdge = 40)
+        gray.release()
+        return refined
     }
 
     private fun detectInBitmap(bitmap: Bitmap): Quad? {

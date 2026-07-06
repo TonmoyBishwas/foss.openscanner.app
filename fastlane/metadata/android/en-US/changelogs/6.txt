@@ -1,0 +1,4 @@
+- Outline now snaps precisely onto the page border (sub-pixel corner refinement)
+- No more grabbing the page's drop shadow on dark desks
+- Much steadier overlay: no flicker or wobble while holding still
+- Crops are re-refined against the full-resolution capture

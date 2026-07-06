@@ -3,6 +3,7 @@ package app.openscanner.android.core.vision
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QuadSmootherTest {
@@ -23,12 +24,30 @@ class QuadSmootherTest {
 
     @Test
     fun `small movement is smoothed not snapped`() {
-        val smoother = QuadSmoother(alpha = 0.5f)
+        val smoother = QuadSmoother(alphaCalm = 0.5f, alphaMoving = 0.5f)
         smoother.update(quadAt(0f, 0f), diagonal)
         val result = smoother.update(quadAt(10f, 0f), diagonal)
         assertNotNull(result)
-        // halfway between 0 and 10 with alpha 0.5
+        // halfway between 0 and 10 with alpha pinned to 0.5
         assertEquals(5f, result!!.topLeft.x, 0.01f)
+    }
+
+    @Test
+    fun `tiny movement gets heavier smoothing than fast movement`() {
+        val calm = QuadSmoother()
+        calm.update(quadAt(0f, 0f), diagonal)
+        val calmResult = calm.update(quadAt(2f, 0f), diagonal)!!
+
+        val moving = QuadSmoother()
+        moving.update(quadAt(0f, 0f), diagonal)
+        val movingResult = moving.update(quadAt(60f, 0f), diagonal)!!
+
+        val calmFraction = calmResult.topLeft.x / 2f
+        val movingFraction = movingResult.topLeft.x / 60f
+        assertTrue(
+            "calm=$calmFraction should lag more than moving=$movingFraction",
+            calmFraction < movingFraction
+        )
     }
 
     @Test
