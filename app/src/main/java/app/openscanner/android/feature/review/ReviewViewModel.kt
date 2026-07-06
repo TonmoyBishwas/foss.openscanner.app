@@ -1,9 +1,11 @@
 package app.openscanner.android.feature.review
 
+import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.Matrix
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.openscanner.android.OpenScannerApplication
 import app.openscanner.android.core.ScanSession
 import app.openscanner.android.core.vision.ScanFilter
 import app.openscanner.android.core.vision.ScanFilters
@@ -13,7 +15,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class ReviewViewModel : ViewModel() {
+class ReviewViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository =
+        (application as OpenScannerApplication).container.documentRepository
 
     private val _selected = MutableStateFlow(ScanFilter.MagicBw)
     val selected = _selected.asStateFlow()
@@ -51,6 +56,32 @@ class ReviewViewModel : ViewModel() {
 
     /** The filtered full-res result for saving, falling back to the source. */
     fun result(): Bitmap? = _preview.value ?: base
+
+    private val _isSaving = MutableStateFlow(false)
+    val isSaving = _isSaving.asStateFlow()
+
+    /**
+     * Persists the filtered page: appends to [ScanSession.targetDocumentId]
+     * when set, otherwise creates a new document. Calls [onSaved] with the
+     * document id on the main thread.
+     */
+    fun save(onSaved: (documentId: String, wasAppend: Boolean) -> Unit) {
+        val bitmap = result() ?: return
+        if (_isSaving.value) return
+        _isSaving.value = true
+        val target = ScanSession.targetDocumentId
+        viewModelScope.launch {
+            val documentId = if (target != null) {
+                repository.appendPage(target, bitmap)
+                target
+            } else {
+                repository.createDocument(bitmap).id
+            }
+            ScanSession.clear()
+            _isSaving.value = false
+            onSaved(documentId, target != null)
+        }
+    }
 
     private fun recompute() {
         computePreview()

@@ -50,6 +50,7 @@ import app.openscanner.android.ui.theme.TextSecondaryAlpha
 fun ReviewScreen(
     onBack: () -> Unit,
     onRetake: () -> Unit,
+    onSaved: (documentId: String, wasAppend: Boolean) -> Unit,
     viewModel: ReviewViewModel = viewModel()
 ) {
     if (ScanSession.cropped == null) {
@@ -61,6 +62,7 @@ fun ReviewScreen(
     val preview by viewModel.preview.collectAsStateWithLifecycle()
     val thumbnails by viewModel.thumbnails.collectAsStateWithLifecycle()
     val selected by viewModel.selected.collectAsStateWithLifecycle()
+    val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -130,9 +132,9 @@ fun ReviewScreen(
                     onClick = onRetake
                 )
                 OSButton(
-                    label = "Save",
-                    enabled = false, // library storage arrives next milestone
-                    onClick = {}
+                    label = if (isSaving) "Saving…" else "Save",
+                    enabled = preview != null && !isSaving,
+                    onClick = { viewModel.save(onSaved) }
                 )
             }
         }

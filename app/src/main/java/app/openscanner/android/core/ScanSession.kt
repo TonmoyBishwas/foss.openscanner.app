@@ -18,9 +18,13 @@ object ScanSession {
     /** Result of the perspective crop, input to the filter step. */
     var cropped: Bitmap? = null
 
+    /** When set, saving appends to this document instead of creating a new one. */
+    var targetDocumentId: String? = null
+
     fun clear() {
         captured = null
         detectedQuad = null
         cropped = null
+        targetDocumentId = null
     }
 }
