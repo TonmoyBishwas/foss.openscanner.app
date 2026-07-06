@@ -12,6 +12,7 @@ import app.openscanner.android.feature.document.DocumentDetailScreen
 import app.openscanner.android.feature.library.LibraryScreen
 import app.openscanner.android.feature.review.ReviewScreen
 import app.openscanner.android.feature.scanner.ScannerScreen
+import app.openscanner.android.feature.settings.SettingsScreen
 
 object Routes {
     const val Library = "library"
@@ -19,6 +20,7 @@ object Routes {
     const val Crop = "crop"
     const val Review = "review"
     const val Document = "document/{documentId}"
+    const val Settings = "settings"
 
     fun document(documentId: String) = "document/$documentId"
 }
@@ -33,7 +35,13 @@ fun AppNavHost() {
                     ScanSession.clear()
                     navController.navigate(Routes.Scanner)
                 },
-                onDocumentClick = { id -> navController.navigate(Routes.document(id)) }
+                onDocumentClick = { id -> navController.navigate(Routes.document(id)) },
+                onSettingsClick = { navController.navigate(Routes.Settings) }
+            )
+        }
+        composable(Routes.Settings) {
+            SettingsScreen(
+                onBack = { navController.popBackStack() }
             )
         }
         composable(Routes.Scanner) {

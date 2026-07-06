@@ -20,7 +20,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     private val repository =
         (application as OpenScannerApplication).container.documentRepository
 
-    private val _selected = MutableStateFlow(ScanFilter.MagicBw)
+    private val _selected = MutableStateFlow(
+        (application as OpenScannerApplication).container.settingsRepository.defaultFilter.value
+    )
     val selected = _selected.asStateFlow()
 
     /** Full-res preview with the selected filter applied (null while computing). */

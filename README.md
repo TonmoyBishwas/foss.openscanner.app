@@ -7,6 +7,16 @@ An open alternative to CamScanner and similar paid scanner apps.
 [![Build](https://github.com/TonmoyBishwas/foss.openscanner.app/actions/workflows/build.yml/badge.svg)](https://github.com/TonmoyBishwas/foss.openscanner.app/actions/workflows/build.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
+## Screenshots
+
+| Library | Live edge detection | Corner adjust | Magic filters | Dark theme |
+|---|---|---|---|---|
+| ![Library](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png) | ![Scanner](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png) | ![Crop](fastlane/metadata/android/en-US/images/phoneScreenshots/3.png) | ![Filters](fastlane/metadata/android/en-US/images/phoneScreenshots/4.png) | ![Settings](fastlane/metadata/android/en-US/images/phoneScreenshots/5.png) |
+
+## Download
+
+Grab the latest APK from [GitHub Releases](https://github.com/TonmoyBishwas/foss.openscanner.app/releases) (`arm64-v8a` for most modern phones). Play Store and F-Droid listings are on the way.
+
 ## Features
 
 - **Live edge detection** — the viewfinder highlights the four corners of the page in real time

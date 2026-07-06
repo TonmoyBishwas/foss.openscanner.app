@@ -1,0 +1,5 @@
+First stable release.
+
+- Settings: theme (system/light/dark) and default filter
+- About screen with version, source link, and license
+- Signed release builds

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -47,6 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.openscanner.android.data.db.DocumentSummary
 import app.openscanner.android.ui.components.OSButton
 import app.openscanner.android.ui.components.OSConfirmDialog
+import app.openscanner.android.ui.components.OSIconButton
 import app.openscanner.android.ui.components.OSRenameDialog
 import app.openscanner.android.ui.components.OSTopBar
 import app.openscanner.android.ui.theme.ControlShape
@@ -60,6 +62,7 @@ import java.util.Date
 fun LibraryScreen(
     onScanClick: () -> Unit,
     onDocumentClick: (String) -> Unit,
+    onSettingsClick: () -> Unit,
     viewModel: LibraryViewModel = viewModel()
 ) {
     val documents by viewModel.documents.collectAsStateWithLifecycle()
@@ -73,7 +76,14 @@ fun LibraryScreen(
         topBar = {
             OSTopBar(
                 title = "OpenScanner",
-                titleStyle = MaterialTheme.typography.headlineMedium.copy(fontFamily = Doto)
+                titleStyle = MaterialTheme.typography.headlineMedium.copy(fontFamily = Doto),
+                actions = {
+                    OSIconButton(
+                        icon = Icons.Rounded.Settings,
+                        contentDescription = "Settings",
+                        onClick = onSettingsClick
+                    )
+                }
             )
         }
     ) { innerPadding ->
