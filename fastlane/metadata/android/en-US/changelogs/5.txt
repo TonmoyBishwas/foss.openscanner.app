@@ -1,0 +1,5 @@
+Much more reliable edge detection on real photos:
+
+- Detects pages on cluttered desks, in shadows, low contrast, and dim light
+- No more wrong outlines from lighting gradients
+- Steadier overlay (less flicker)

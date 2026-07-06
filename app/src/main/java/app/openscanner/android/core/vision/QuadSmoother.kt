@@ -11,7 +11,7 @@ class QuadSmoother(
     /** Corner jump (fraction of frame diagonal) beyond which we snap instead of glide. */
     private val snapDistanceFraction: Float = 0.15f,
     /** Consecutive misses tolerated before the quad is dropped. */
-    private val maxMisses: Int = 5
+    private val maxMisses: Int = 10
 ) {
     private var current: Quad? = null
     private var misses = 0
